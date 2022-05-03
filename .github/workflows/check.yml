@@ -1,0 +1,131 @@
+---
+name: Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+
+      - name: Get Terraform version
+        run: echo "::set-output name=version::$(cat .terraform-version)"
+        id: terraform_version
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ steps.terraform_version.outputs.version }}
+
+      - name: Run CI checks
+        run: make ci
+
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        path:
+          - dev/apps/example-alb-ec2-ebs
+          - prod/foundation/terraform
+          - prod/foundation/github-oidc
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+
+      - name: Get Terraform version
+        run: echo "::set-output name=version::$(cat .terraform-version)"
+        id: terraform_version
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ steps.terraform_version.outputs.version }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Initialize Terraform
+        run: |
+          cd envs/${{ matrix.path }}
+          terraform init -input=false  
+
+      - name: Plan Terraform
+        id: plan
+        continue-on-error: true
+        run: |
+          cd envs/${{ matrix.path }}
+          terraform plan -input=false -no-color -out=tfplan \
+          && terraform show -no-color tfplan
+
+      - name: Reformat Plan
+        if: steps.plan.outcome == 'success'
+        run: |
+          echo "${{ steps.plan.outputs.stdout || steps.plan.outputs.stderr }}" \
+          | sed -E 's/^([[:space:]]+)([-+])/\2\1/g' > plan.txt
+
+      - name: Put Plan in Env Var
+        if: steps.plan.outcome == 'success'
+        run: |
+          PLAN=$(cat plan.txt)
+          echo "PLAN<<EOF" >> $GITHUB_ENV
+          echo "$PLAN" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Post Plan to GitHub PR
+        if: ${{ steps.plan.outcome == 'success' && !contains(env.PLAN, 'No changes.') }}
+        uses: mshick/add-pr-comment@v1
+        with:
+          allow-repeats: true
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          message: |
+            :sparkle: Build plan for **${{ matrix.path }}**
+
+            <details>
+            <summary>Click for detailed plan :blue_book:</summary>
+          
+            ### ${{ matrix.path }} plan
+            ```diff
+            ${{ env.PLAN }}
+            ```
+            </details>
+
+            :warning: _After merging these changes will be applied automatically!_
+
+      - name: Post Plan Failure
+        if: steps.plan.outcome == 'failure'
+        uses: mshick/add-pr-comment@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          message: |
+            :stop_sign: Plan failed for **${{ matrix.path }}**:
+
+            ```
+            ${{ steps.plan.outputs.stderr }}
+            ```
+
+      - name: Fail Check
+        if: steps.plan.outcome == 'failure'
+        uses: actions/github-script@v3
+        with:
+          script: |
+              core.setFailed('Terraform Plan failed')

@@ -1,0 +1,5 @@
+{
+    "yaml.schemas": {
+        "https://json.schemastore.org/github-workflow.json": "file:///Users/dmytro.vorotyntsev/src/github.com/vorotech/terraform-examples/.github/workflows/deploy.yml"
+    }
+}
