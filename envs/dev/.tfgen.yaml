@@ -1,4 +1,4 @@
 ---
 vars:
-  aws_region: us-east-1
+  aws_region: eu-west-1
   env: dev

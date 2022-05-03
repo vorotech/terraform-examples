@@ -37,7 +37,7 @@ template_files:
     }
 
     provider "aws" {
-      region = "{{ .aws_region }}"
+      region              = "{{ .aws_region }}"
       allowed_account_ids = [var.allowed_account_id]
       default_tags {
         tags = {
