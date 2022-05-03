@@ -30,6 +30,9 @@ jobs:
     name: Plan
     runs-on: ubuntu-latest
 
+    env:
+      TF_VAR_allowed_account_id: ${{ secrets.ALLOWED_ACCOUNT_ID }}
+
     permissions:
       contents: read
       id-token: write

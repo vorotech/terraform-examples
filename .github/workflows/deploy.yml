@@ -28,6 +28,10 @@ jobs:
   plan_and_apply:
     name: Plan and Apply
     runs-on: ubuntu-20.04
+
+    env:
+      TF_VAR_allowed_account_id: ${{ secrets.ALLOWED_ACCOUNT_ID }}
+
     strategy:
       fail-fast: false
       matrix:
