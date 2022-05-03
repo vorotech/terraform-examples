@@ -40,8 +40,8 @@ resource "aws_instance" "this" {
   iam_instance_profile   = one(aws_iam_instance_profile.this.*.id)
   instance_type          = var.instance_type
   key_name               = var.instance_key_name
-  vpc_security_group_ids = [module.instance_sg.security_group_id]
   subnet_id              = var.instance_subnet_id
+  vpc_security_group_ids = [module.instance_sg.security_group_id]
 
   root_block_device {
     volume_size = var.root_volume_size
