@@ -33,8 +33,6 @@ jobs:
       matrix:
         path:
           - dev/apps/example-alb-ec2-ebs
-          - prod/foundation/terraform
-          - prod/foundation/github-oidc
 
     steps:
       - name: Check out
