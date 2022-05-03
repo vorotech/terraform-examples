@@ -5,9 +5,9 @@ data "aws_vpc" "this" {
 }
 
 data "aws_ami" "this" {
-  most_recent      = true
-  name_regex       = "^ubuntu"
-  owners           = ["amazon"]
+  most_recent = true
+  name_regex  = "^ubuntu"
+  owners      = ["amazon"]
 
   filter {
     name   = "root-device-type"
