@@ -2,6 +2,6 @@
 
 variable "env" {
   description = "Environment identifier."
-  default = "dev"
-  type    = string
+  default     = "dev"
+  type        = string
 }
